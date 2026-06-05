@@ -1,34 +1,50 @@
-# Polyscanner
+# Polymarket Bot
 
-Polls active Polymarket markets and sends Telegram alerts for sharp price moves, extreme prices, and new markets.
+A lightweight Python daemon that monitors [Polymarket](https://polymarket.com) prediction markets and sends real-time Telegram alerts when something significant happens.
 
-## Running locally
+## What it does
 
+Polls all active Polymarket markets every 5 minutes and fires alerts for three signal types:
+
+- **Sharp price move** — any outcome shifts more than 15% in a single poll cycle
+- **Extreme consensus** — a market with >$50K volume has an outcome above 92% or below 8%
+- **New market** — a qualifying market appears that wasn't there last poll
+
+Filters out sports markets and low-volume markets (<$1K) to reduce noise.
+
+## How it works
+
+1. Fetches all active markets from the Polymarket API (paginated)
+2. Compares current prices against a local state file from the previous poll
+3. Fires a Telegram message for any market that hits a signal threshold
+4. Saves updated state to disk so it persists across restarts
+
+No AI in the loop — zero per-poll cost.
+
+## Setup
 ```bash
-# 1. Clone the repo
-git clone <repo-url>
+git clone https://github.com/grahamrogerss/polymarket-bot
 cd polymarket-bot
-
-# 2. Create a .env file with your Telegram credentials
-cp .env.example .env   # or create it manually
-# TELEGRAM_BOT_TOKEN=your_bot_token
-# TELEGRAM_CHAT_ID=your_chat_id
-
-# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Run
-python monitor.py
+
+Create a .env file:
+
+TELEGRAM_BOT_TOKEN=your_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+
+
+Then run:
 ```
+```bash
+python monitor.py
 
-Press `Ctrl+C` to stop.
 
-## Alert types
+The first poll seeds the state file. Alerts start firing on the second poll (5 minutes later).
 
-| Alert | Trigger |
-|---|---|
-| 🆕 New Market | A market appears for the first time |
-| 🔴 Sharp Move | Any outcome moves ≥ 15% since last poll |
-| 🟡 Extreme Price | Volume > $50k and an outcome is priced < 8% or > 92% |
-
-Sports and game markets are excluded from all alerts.
+Stack
+Python 3.11+
+requests for API calls
+python-dotenv for config
+Telegram Bot API for alerts
+JSON file for state persistence
