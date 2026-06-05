@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -256,6 +257,8 @@ def poll(state: dict, token: str, chat_id: str, is_first_run: bool) -> None:
 
 
 def main() -> None:
+    load_dotenv()
+
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
 
@@ -264,18 +267,23 @@ def main() -> None:
             "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — alerts will be skipped"
         )
 
+    print(f"Polyscanner running — polling every {POLL_INTERVAL // 60} min, alerts → Telegram")
+
     state = load_state()
     is_first_run = len(state) == 0
 
-    while True:
-        try:
-            poll(state, token, chat_id, is_first_run)
-            is_first_run = False
-        except Exception as exc:
-            log.error("Unhandled error in poll cycle: %s", exc)
+    try:
+        while True:
+            try:
+                poll(state, token, chat_id, is_first_run)
+                is_first_run = False
+            except Exception as exc:
+                log.error("Unhandled error in poll cycle: %s", exc)
 
-        log.info("Sleeping %d seconds until next poll …", POLL_INTERVAL)
-        time.sleep(POLL_INTERVAL)
+            log.info("Sleeping %d seconds until next poll …", POLL_INTERVAL)
+            time.sleep(POLL_INTERVAL)
+    except KeyboardInterrupt:
+        print("\nPolyscanner stopped.")
 
 
 if __name__ == "__main__":
